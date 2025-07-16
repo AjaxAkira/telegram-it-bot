@@ -1,11 +1,10 @@
-import os
+from telegram.ext import Updater, ChatJoinRequestHandler
 import random
-from telegram import Update
-from telegram.ext import ApplicationBuilder, ChatJoinRequestHandler, ContextTypes
 
-BOT_TOKEN = os.getenv("BOT_TOKEN")
+BOT_TOKEN = "7639839035:AAGgsOb_P7gmIssQEuYLXYLQEWpE4oxIlgo"
 
 IT_KEYWORDS = ["IT", "INFORMATION TECHNOLOGY"]
+
 GREETING_MESSAGES = [
     "{name} ရေ ကျန်းမာရေးဂရုစိုက်ပါ",
     "{name} ရေ ကြိုးစားပါ",
@@ -15,20 +14,33 @@ GREETING_MESSAGES = [
     "{name} ရေ နေ့တိုင်းမောင်္မာကြွယ်ဝပါစေ"
 ]
 
-async def approve_if_it(update: Update, context: ContextTypes.DEFAULT_TYPE):
+def approve_if_it(update, context):
     user = update.chat_join_request.from_user
     chat = update.chat_join_request.chat
-    bio_upper = (user.bio or "").upper()
+    bio = user.bio or ""
     full_name = user.full_name
+    bio_upper = bio.upper()
 
     if any(keyword in bio_upper for keyword in IT_KEYWORDS):
-        await context.bot.approve_chat_join_request(chat_id=chat.id, user_id=user.id)
-        message = random.choice(GREETING_MESSAGES).format(name=full_name)
-        await context.bot.send_message(chat_id=chat.id, text=f"{full_name} ကို ဝင်ခွင့်ပြုလိုက်ပါတယ်။\n{message}")
-    else:
-        await context.bot.decline_chat_join_request(chat_id=chat.id, user_id=user.id)
-        await context.bot.send_message(chat_id=chat.id, text=f"{full_name} Bio မှာ IT မပါလို့ ဝင်ခွင့်မပြုပါ။")
+        context.bot.approve_chat_join_request(chat_id=chat.id, user_id=user.id)
 
-app = ApplicationBuilder().token(BOT_TOKEN).build()
-app.add_handler(ChatJoinRequestHandler(approve_if_it))
-app.run_polling()
+        message_template = random.choice(GREETING_MESSAGES)
+        message = message_template.format(name=full_name)
+
+        context.bot.send_message(
+            chat_id=chat.id,
+            text=f"{full_name} ကို ဝင်ခွင့်ပြုလိုက်ပါတယ်။\n{message}"
+        )
+    else:
+        context.bot.decline_chat_join_request(chat_id=chat.id, user_id=user.id)
+        context.bot.send_message(
+            chat_id=chat.id,
+            text=f"{full_name} Bio မှာ IT မပါလို ဝင်ခွင့်မပြုပါ။"
+        )
+
+updater = Updater(BOT_TOKEN, use_context=True)
+updater.dispatcher.add_handler(ChatJoinRequestHandler(approve_if_it))
+
+updater.start_polling()
+updater.idle()
+
